@@ -1,16 +1,48 @@
-import yfinance as yf
+import baostock as bs
 import pandas as pd
 
 class MAStrategy:
     def __init__(self, symbol, short_window, long_window):
-        self.symbol = symbol
+        self.symbol = symbol  # 例如："sh.600000" 浦发银行
         self.short_window = short_window
         self.long_window = long_window
     
     def backtest(self):
         try:
-            # 下载股票数据
-            stock = yf.download(self.symbol, start='2020-01-01')
+            # 登录系统
+            lg = bs.login()
+            if lg.error_code != '0':
+                print(f'登录失败: {lg.error_msg}')
+                return None
+            
+            # 获取股票数据
+            rs = bs.query_history_k_data_plus(
+                self.symbol,
+                "date,close",
+                start_date='2020-01-01',
+                frequency="d",
+                adjustflag="3"  # 复权类型：3表示后复权
+            )
+            
+            if rs.error_code != '0':
+                print(f'获取数据失败: {rs.error_msg}')
+                bs.logout()
+                return None
+            
+            # 转换数据格式
+            data_list = []
+            while (rs.error_code == '0') & rs.next():
+                data_list.append(rs.get_row_data())
+            
+            if not data_list:
+                print('未获取到任何数据')
+                bs.logout()
+                return None
+            
+            # 创建DataFrame
+            stock = pd.DataFrame(data_list, columns=['date', 'Close'])
+            stock['Close'] = stock['Close'].astype(float)
+            stock.set_index('date', inplace=True)
             
             # 计算移动平均线
             stock['SMA_short'] = stock['Close'].rolling(window=self.short_window).mean()
@@ -28,10 +60,14 @@ class MAStrategy:
             stock['Cumulative_Returns'] = (1 + stock['Returns']).cumprod()
             stock['Strategy_Cumulative_Returns'] = (1 + stock['Strategy_Returns']).cumprod()
             
+            # 退出系统
+            bs.logout()
+            
             return stock
             
         except Exception as e:
             print(f"发生错误: {e}")
+            bs.logout()
             return None 
     
     def add_indicators(self, df):
