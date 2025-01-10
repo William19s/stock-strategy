@@ -1,7 +1,6 @@
-streamlit==1.32.0
-pandas==2.2.0
-matplotlib==3.8.2
-baostock==0.8.8
+# Core dependencies
+streamlit>=1.32.0
+pandas>=2.2.0
 numpy>=1.24.0
-pytest>=7.0.0
-pyyaml>=6.0.0 
+plotly>=5.18.0
+psutil>=5.9.0 
