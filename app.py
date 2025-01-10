@@ -97,7 +97,7 @@ def main():
     
     elif page == "策略回测":
         # 用户输入
-        symbol = st.text_input('输入股票代码（例如：AAPL）', 'AAPL')
+        symbol = st.text_input('输入股票代码（例如：sh.600000）', 'sh.600000')
         short_window = st.slider('短期MA周期', 5, 50, 20)
         long_window = st.slider('长期MA周期', 20, 200, 50)
 
@@ -106,7 +106,7 @@ def main():
             strategy = MAStrategy(symbol, short_window, long_window)
             results = strategy.backtest()
             
-            if results is not None:
+            if results is not None and not results.empty:  # 添加检查
                 # 显示策略收益
                 final_return = (results['Strategy_Cumulative_Returns'].iloc[-1] - 1) * 100
                 st.write(f'策略最终收益：{final_return:.2f}%')
@@ -120,6 +120,8 @@ def main():
                 st.dataframe(results.tail())
 
                 add_strategy_analysis(results)
+            else:
+                st.error(f"无法获取股票 {symbol} 的数据，请检查股票代码是否正确。")
 
 if __name__ == '__main__':
     main() 
