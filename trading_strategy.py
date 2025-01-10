@@ -20,16 +20,31 @@ class MAStrategy:
     def get_stock_name(self):
         try:
             lg = bs.login()
+            if lg.error_code != '0':
+                print(f'登录失败: {lg.error_msg}')
+                return None
+            
             rs = bs.query_stock_basic(code=self.symbol)
-            if rs.error_code == '0' and rs.next():
+            if rs.error_code != '0':
+                print(f'查询失败: {rs.error_msg}')
+                bs.logout()
+                return None
+            
+            if rs.next():
                 stock_info = rs.get_row_data()
-                name = stock_info[1]  # 股票名称在第二列
+                name = stock_info[1] if len(stock_info) > 1 else None
                 bs.logout()
                 return name
+            
             bs.logout()
             return None
-        except:
-            bs.logout()
+            
+        except Exception as e:
+            print(f"获取股票名称时发生错误: {str(e)}")
+            try:
+                bs.logout()
+            except:
+                pass
             return None
     
     def get_stock_basic_info(self):

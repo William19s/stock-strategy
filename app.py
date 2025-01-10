@@ -130,31 +130,36 @@ def main():
         long_window = st.slider('长期MA周期', 20, 200, 50)
 
         if st.button('运行策略'):
-            # 运行策略
-            strategy = MAStrategy(symbol, short_window, long_window)
-            stock_name = strategy.get_stock_name()
-            
-            if stock_name:
-                st.write(f"### 股票：{stock_name}（{symbol}）")
-            
-            results = strategy.backtest()
-            
-            if results is not None and not results.empty:  # 添加检查
-                # 显示策略收益
-                final_return = (results['Strategy_Cumulative_Returns'].iloc[-1] - 1) * 100
-                st.write(f'策略最终收益：{final_return:.2f}%')
+            try:
+                # 运行策略
+                strategy = MAStrategy(symbol, short_window, long_window)
+                stock_name = strategy.get_stock_name()
                 
-                # 显示图表
-                fig = plot_strategy(results, short_window, long_window)
-                st.pyplot(fig)
+                if stock_name:
+                    st.write(f"### 股票：{stock_name}（{symbol}）")
+                else:
+                    st.warning(f"无法获取股票 {symbol} 的名称，但将继续尝试获取数据")
                 
-                # 显示详细数据
-                st.write('### 交易数据')
-                st.dataframe(results.tail())
+                results = strategy.backtest()
+                
+                if results is not None and not results.empty:
+                    # 显示策略收益
+                    final_return = (results['Strategy_Cumulative_Returns'].iloc[-1] - 1) * 100
+                    st.write(f'策略最终收益：{final_return:.2f}%')
+                    
+                    # 显示图表
+                    fig = plot_strategy(results, short_window, long_window)
+                    st.pyplot(fig)
+                    
+                    # 显示详细数据
+                    st.write('### 交易数据')
+                    st.dataframe(results.tail())
 
-                add_strategy_analysis(results)
-            else:
-                st.error(f"无法获取股票 {symbol} 的数据，请检查股票代码是否正确。")
+                    add_strategy_analysis(results)
+                else:
+                    st.error(f"无法获取股票 {symbol} 的数据，请检查股票代码是否正确。")
+            except Exception as e:
+                st.error(f"运行策略时发生错误: {str(e)}")
 
 if __name__ == '__main__':
     main() 
