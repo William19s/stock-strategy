@@ -1,5 +1,7 @@
 streamlit==1.32.0
 pandas==2.2.0
 matplotlib==3.8.2
-akshare==1.11.77
-baostock==0.8.8 
+baostock==0.8.8
+numpy>=1.24.0
+pytest>=7.0.0
+pyyaml>=6.0.0 

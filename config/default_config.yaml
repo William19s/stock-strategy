@@ -1,0 +1,11 @@
+data:
+  start_date: '2020-01-01'
+  default_symbol: '600000'
+
+strategies:
+  ma:
+    short_window: 20
+    long_window: 50
+  
+  momentum:
+    lookback: 20 
