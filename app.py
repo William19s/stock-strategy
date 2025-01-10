@@ -8,14 +8,26 @@ def show_overview():
     ## 📈 策略概述
     这是一个基于移动平均线的股票交易策略分析工具。
     
-    ### 主要功能
-    - 双均线交易策略回测
-    - 策略收益可视化
-    - 交易信号分析
+    ### 策略说明
+    1. 双均线策略
+       - 当短期均线上穿长期均线时买入
+       - 当短期均线下穿长期均线时卖出
+       
+    2. 市值筛选
+       - 市值范围：80亿 - 500亿
+       - 避免超大盘股和小盘股的极端情况
+       
+    3. 交易条件
+       - 成交量需大于5日平均成交量
+       - 股价需高于5元，避免低价股
     
     ### 使用说明
-    1. 输入股票代码（例如：AAPL）
-    2. 调整短期和长期MA周期
+    1. 输入股票代码（例如：600000）
+    2. 调整策略参数：
+       - 短期MA周期（默认20日）
+       - 长期MA周期（默认50日）
+       - 市值范围
+       - 成交量条件
     3. 点击"运行策略"查看结果
     """)
 
@@ -97,13 +109,18 @@ def main():
     
     elif page == "策略回测":
         # 用户输入
-        symbol = st.text_input('输入股票代码（例如：sh.600000）', 'sh.600000')
+        symbol = st.text_input('输入股票代码（例如：600000）', '600000')
         short_window = st.slider('短期MA周期', 5, 50, 20)
         long_window = st.slider('长期MA周期', 20, 200, 50)
 
         if st.button('运行策略'):
             # 运行策略
             strategy = MAStrategy(symbol, short_window, long_window)
+            stock_name = strategy.get_stock_name()
+            
+            if stock_name:
+                st.write(f"### 股票：{stock_name}（{symbol}）")
+            
             results = strategy.backtest()
             
             if results is not None and not results.empty:  # 添加检查

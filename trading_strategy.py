@@ -3,9 +3,48 @@ import pandas as pd
 
 class MAStrategy:
     def __init__(self, symbol, short_window, long_window):
-        self.symbol = symbol  # 例如："sh.600000" 浦发银行
+        # 如果输入的是纯数字，自动添加前缀
+        if symbol.isdigit():
+            if symbol.startswith('6'):
+                self.symbol = f"sh.{symbol}"
+            else:
+                self.symbol = f"sz.{symbol}"
+        else:
+            self.symbol = symbol
+            
         self.short_window = short_window
         self.long_window = long_window
+        
+    def get_stock_name(self):
+        try:
+            lg = bs.login()
+            rs = bs.query_stock_basic(code=self.symbol)
+            if rs.error_code == '0' and rs.next():
+                stock_info = rs.get_row_data()
+                name = stock_info[1]  # 股票名称在第二列
+                bs.logout()
+                return name
+            bs.logout()
+            return None
+        except:
+            bs.logout()
+            return None
+    
+    def get_stock_basic_info(self):
+        try:
+            lg = bs.login()
+            rs = bs.query_stock_basic(code=self.symbol)
+            if rs.error_code == '0' and rs.next():
+                stock_info = rs.get_row_data()
+                name = stock_info[1]  # 股票名称
+                market_cap = float(stock_info[11]) if stock_info[11] else 0  # 总市值
+                bs.logout()
+                return {'name': name, 'market_cap': market_cap}
+            bs.logout()
+            return None
+        except:
+            bs.logout()
+            return None
     
     def backtest(self):
         try:
@@ -15,13 +54,13 @@ class MAStrategy:
                 print(f'登录失败: {lg.error_msg}')
                 return None
             
-            # 获取股票数据
+            # 获取股票数据（增加成交量数据）
             rs = bs.query_history_k_data_plus(
                 self.symbol,
-                "date,close",
+                "date,close,volume",
                 start_date='2020-01-01',
                 frequency="d",
-                adjustflag="3"  # 复权类型：3表示后复权
+                adjustflag="3"
             )
             
             if rs.error_code != '0':
@@ -40,17 +79,37 @@ class MAStrategy:
                 return None
             
             # 创建DataFrame
-            stock = pd.DataFrame(data_list, columns=['date', 'Close'])
+            stock = pd.DataFrame(data_list, columns=['date', 'Close', 'volume'])
             stock['Close'] = stock['Close'].astype(float)
+            stock['volume'] = stock['volume'].astype(float)
             stock.set_index('date', inplace=True)
             
             # 计算移动平均线
             stock['SMA_short'] = stock['Close'].rolling(window=self.short_window).mean()
             stock['SMA_long'] = stock['Close'].rolling(window=self.long_window).mean()
             
-            # 生成交易信号
+            # 添加成交量条件
+            stock['Volume'] = stock['volume'].astype(float)
+            stock['Volume_MA5'] = stock['Volume'].rolling(window=5).mean()
+            volume_condition = stock['Volume'] > stock['Volume_MA5']
+            
+            # 获取市值信息
+            basic_info = self.get_stock_basic_info()
+            if basic_info:
+                market_cap = basic_info['market_cap']
+                market_cap_condition = 80 <= market_cap <= 500
+            else:
+                market_cap_condition = True  # 如果无法获取市值信息，则忽略此条件
+            
+            # 生成交易信号（考虑所有条件）
             stock['Signal'] = 0
-            stock.loc[stock['SMA_short'] > stock['SMA_long'], 'Signal'] = 1
+            stock.loc[
+                (stock['SMA_short'] > stock['SMA_long']) &  # 均线条件
+                (stock['Close'] > 5) &  # 股价条件
+                volume_condition &  # 成交量条件
+                market_cap_condition,  # 市值条件
+                'Signal'
+            ] = 1
             
             # 计算每日收益
             stock['Returns'] = stock['Close'].pct_change()
