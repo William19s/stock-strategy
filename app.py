@@ -8,64 +8,50 @@ def show_overview():
     ## 📈 策略概述
     这是一个基于移动平均线的股票交易策略分析工具。
     
-    ### 策略说明
-    1. 双均线策略
-       - 当短期均线上穿长期均线时买入
-       - 当短期均线下穿长期均线时卖出
-       
-    2. 市值筛选
-       - 市值范围：80亿 - 500亿
-       - 避免超大盘股和小盘股的极端情况
-       
-    3. 交易条件
-       - 成交量需大于5日平均成交量
-       - 股价需高于5元，避免低价股
-    
-    ### 使用说明
-    1. 输入股票代码（例如：600000）
-    2. 调整策略参数：
-       - 短期MA周期（默认20日）
-       - 长期MA周期（默认50日）
-       - 市值范围
-       - 成交量条件
-    3. 点击"运行策略"查看结果
+    ### 股票代码说明
+    - 上证主板：600xxx
+    - 科创板：688xxx
+    - 深证主板：000xxx、001xxx、003xxx
+    - 中小板：002xxx
+    - 创业板：300xxx
     """)
 
 def plot_strategy(df, short_window, long_window):
-    # 创建图表
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+    # 调整图表大小和布局以适应移动设备
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))  # 改为垂直布局
+    plt.tight_layout(pad=3.0)  # 增加图表间距
     
     # 绘制股价和移动平均线
     ax1.plot(df.index, df['Close'], label='股价', alpha=0.7)
     ax1.plot(df.index, df['SMA_short'], label=f'{short_window}日MA', alpha=0.7)
     ax1.plot(df.index, df['SMA_long'], label=f'{long_window}日MA', alpha=0.7)
     ax1.set_title('股价与移动平均线')
-    ax1.legend()
+    ax1.legend(loc='upper left', bbox_to_anchor=(0, -0.1))  # 调整图例位置
+    ax1.tick_params(axis='x', rotation=45)  # 旋转x轴标签
     
     # 绘制累计收益对比
     ax2.plot(df.index, df['Cumulative_Returns'], label='买入持有', alpha=0.7)
     ax2.plot(df.index, df['Strategy_Cumulative_Returns'], label='策略收益', alpha=0.7)
     ax2.set_title('策略收益对比')
-    ax2.legend()
+    ax2.legend(loc='upper left')
+    ax2.tick_params(axis='x', rotation=45)
     
     return fig
 
 def add_strategy_analysis(results):
     st.write("### 策略分析")
     
-    # 计算关键指标
-    total_trades = len(results[results['Signal'].diff() != 0])
-    win_rate = (results['Strategy_Returns'] > 0).mean() * 100
-    max_drawdown = ((results['Strategy_Cumulative_Returns'].cummax() - results['Strategy_Cumulative_Returns']) 
-                    / results['Strategy_Cumulative_Returns'].cummax()).max() * 100
-    
-    # 显示指标
-    col1, col2, col3 = st.columns(3)
-    with col1:
+    # 使用容器来确保移动端显示正常
+    with st.container():
+        # 计算关键指标
+        total_trades = len(results[results['Signal'].diff() != 0])
+        win_rate = (results['Strategy_Returns'] > 0).mean() * 100
+        max_drawdown = ((results['Strategy_Cumulative_Returns'].cummax() - results['Strategy_Cumulative_Returns']) 
+                        / results['Strategy_Cumulative_Returns'].cummax()).max() * 100
+        
+        # 在移动端使用垂直布局
         st.metric("总交易次数", f"{total_trades}次")
-    with col2:
         st.metric("胜率", f"{win_rate:.2f}%")
-    with col3:
         st.metric("最大回撤", f"{max_drawdown:.2f}%")
 
 def add_optimization():
@@ -96,6 +82,36 @@ def add_optimization():
             st.sidebar.write(f"长期MA: {best_params['long']}")
 
 def main():
+    # 设置页面配置以适应移动设备
+    st.set_page_config(
+        page_title="股票策略分析器",
+        layout="wide",
+        initial_sidebar_state="collapsed"  # 在移动端默认收起侧边栏
+    )
+    
+    # 添加CSS样式
+    st.markdown("""
+        <style>
+        .stApp {
+            max-width: 100%;
+            padding: 1rem;
+        }
+        .stPlot {
+            width: 100%;
+            height: auto;
+        }
+        .streamlit-expanderHeader {
+            font-size: 1em;
+        }
+        @media (max-width: 640px) {
+            .stMetric {
+                width: 100%;
+                margin-bottom: 1rem;
+            }
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
     st.title('股票交易策略分析器')
     
     # 侧边栏用于导航
