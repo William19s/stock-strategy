@@ -3,10 +3,12 @@ import pandas as pd
 
 class MAStrategy:
     def __init__(self, symbol, short_window, long_window):
-        # 如果输入的是纯数字，自动添加前缀
+        # 统一处理股票代码格式
         if symbol.isdigit():
+            # 上海证券交易所
             if symbol.startswith('6'):
                 self.symbol = f"sh.{symbol}"
+            # 深圳证券交易所
             else:
                 self.symbol = f"sz.{symbol}"
         else:
@@ -54,17 +56,19 @@ class MAStrategy:
                 print(f'登录失败: {lg.error_msg}')
                 return None
             
-            # 获取股票数据（增加成交量数据）
+            print(f"正在获取股票数据: {self.symbol}")  # 添加调试信息
+            
+            # 获取股票数据
             rs = bs.query_history_k_data_plus(
                 self.symbol,
                 "date,close,volume",
                 start_date='2020-01-01',
                 frequency="d",
-                adjustflag="3"
+                adjustflag="3"  # 复权类型：3表示后复权
             )
             
             if rs.error_code != '0':
-                print(f'获取数据失败: {rs.error_msg}')
+                print(f'获取数据失败: {rs.error_msg}, 错误代码: {rs.error_code}')
                 bs.logout()
                 return None
             
@@ -74,7 +78,7 @@ class MAStrategy:
                 data_list.append(rs.get_row_data())
             
             if not data_list:
-                print('未获取到任何数据')
+                print(f'未获取到数据，可能原因：\n1. 股票代码格式错误\n2. 股票未上市或已退市\n3. 数据源暂不支持')
                 bs.logout()
                 return None
             
@@ -101,15 +105,50 @@ class MAStrategy:
             else:
                 market_cap_condition = True  # 如果无法获取市值信息，则忽略此条件
             
-            # 生成交易信号（考虑所有条件）
+            # 计算技术指标
+            # MACD
+            exp1 = stock['Close'].ewm(span=12, adjust=False).mean()
+            exp2 = stock['Close'].ewm(span=26, adjust=False).mean()
+            stock['MACD'] = exp1 - exp2
+            stock['Signal_Line'] = stock['MACD'].ewm(span=9, adjust=False).mean()
+            stock['MACD_Hist'] = stock['MACD'] - stock['Signal_Line']
+            
+            # RSI
+            delta = stock['Close'].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rs = gain / loss
+            stock['RSI'] = 100 - (100 / (1 + rs))
+            
+            # KDJ
+            low_min = stock['Close'].rolling(window=9).min()
+            high_max = stock['Close'].rolling(window=9).max()
+            stock['RSV'] = (stock['Close'] - low_min) / (high_max - low_min) * 100
+            stock['K'] = stock['RSV'].rolling(window=3).mean()
+            stock['D'] = stock['K'].rolling(window=3).mean()
+            stock['J'] = 3 * stock['K'] - 2 * stock['D']
+            
+            # 生成交易信号（综合多个指标）
             stock['Signal'] = 0
             stock.loc[
                 (stock['SMA_short'] > stock['SMA_long']) &  # 均线条件
-                (stock['Close'] > 5) &  # 股价条件
-                volume_condition &  # 成交量条件
-                market_cap_condition,  # 市值条件
+                (stock['MACD'] > stock['Signal_Line']) &    # MACD金叉
+                (stock['RSI'] > 30) & (stock['RSI'] < 70) & # RSI不过度超买超卖
+                (stock['K'] > stock['D']) &                 # KDJ金叉
+                (stock['Close'] > 5) &                      # 股价条件
+                volume_condition &                          # 成交量条件
+                market_cap_condition,                       # 市值条件
                 'Signal'
             ] = 1
+            
+            # 添加卖出信号（可选）
+            stock.loc[
+                (stock['SMA_short'] < stock['SMA_long']) |  # 均线死叉
+                (stock['MACD'] < stock['Signal_Line']) |    # MACD死叉
+                (stock['RSI'] > 80) |                       # RSI超买
+                (stock['K'] < stock['D']),                  # KDJ死叉
+                'Signal'
+            ] = 0
             
             # 计算每日收益
             stock['Returns'] = stock['Close'].pct_change()
