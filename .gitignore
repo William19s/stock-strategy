@@ -2,7 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 .Python
 build/
 develop-eggs/
@@ -32,19 +31,12 @@ ENV/
 .vscode/
 *.swp
 *.swo
-.project
-.pydevproject
-.settings/
 
 # Project specific
 data/
 logs/
 *.log
 .streamlit/secrets.toml
-.coverage
-htmlcov/
-.pytest_cache/
-.mypy_cache/
 
 # OS specific
 .DS_Store
