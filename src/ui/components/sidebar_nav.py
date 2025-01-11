@@ -146,7 +146,12 @@ def render_nav_tree(menu_items: list) -> str:
                     <span class="status-dot"></span>
                     <span class="status-text">系统运行正常</span>
                 </div>
-                <span class="status-text">v1.0.0</span>
+                <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                    <span class="status-text">v1.0.0</span>
+                    <span class="status-text" style="font-size: 0.7rem; color: #718096;">
+                        by 韦正海 (VX: devdiv)
+                    </span>
+                </div>
             </div>
         """, unsafe_allow_html=True)
         
