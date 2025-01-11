@@ -13,6 +13,7 @@ def render_nav_tree(menu_items: list) -> str:
                 }
                 section[data-testid="stSidebar"] > div {
                     padding: 0rem;
+                    padding-bottom: 5rem;
                 }
                 
                 /* Logo区域 */
@@ -81,16 +82,17 @@ def render_nav_tree(menu_items: list) -> str:
                 
                 /* 底部状态 */
                 .status-bar {
-                    position: absolute;
+                    position: fixed;
                     bottom: 0;
                     left: 0;
-                    right: 0;
+                    width: 280px;
                     padding: 1rem 1.5rem;
                     background-color: rgba(0,0,0,0.2);
                     border-top: 1px solid rgba(255,255,255,0.1);
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    z-index: 1000;
                 }
                 .status-dot {
                     width: 8px;
