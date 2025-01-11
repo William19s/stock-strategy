@@ -32,24 +32,20 @@ ENV/
 .vscode/
 *.swp
 *.swo
+.project
+.pydevproject
+.settings/
 
 # Project specific
-logs/
 data/
-.cache/
-*.csv
-*.json
-*.pkl
+logs/
 *.log
-*.db
-assets/temp/*
-!assets/logo.png
-
-# Test
+.streamlit/secrets.toml
 .coverage
 htmlcov/
 .pytest_cache/
 .mypy_cache/
 
-# Docs
-docs/_build/
+# OS specific
+.DS_Store
+Thumbs.db

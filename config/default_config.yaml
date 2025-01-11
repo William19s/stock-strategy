@@ -1,11 +1,29 @@
+# 数据配置
 data:
   start_date: '2020-01-01'
   default_symbol: '600000'
+  cache_enabled: true
+  cache_days: 1
 
+# 策略配置
 strategies:
   ma:
     short_window: 20
     long_window: 50
+    volume_window: 5
   
   momentum:
-    lookback: 20 
+    lookback: 20
+    holding_period: 5
+
+# 回测配置
+backtest:
+  initial_capital: 100000
+  commission_rate: 0.0003
+  slippage_rate: 0.0001
+
+# 界面配置
+ui:
+  theme: "light"
+  default_page: "single_stock"
+  chart_style: "seaborn" 

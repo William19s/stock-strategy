@@ -1,16 +1,35 @@
-from .base_strategy import BaseStrategy
-from ..indicators.technical import TechnicalIndicators
+import pandas as pd
+from typing import Dict
+from .base import BaseStrategy
+from ..indicators.trend import calculate_ma
 
 class MAStrategy(BaseStrategy):
-    def __init__(self, symbol, short_window, long_window):
-        super().__init__(symbol)
-        self.short_window = short_window
-        self.long_window = long_window
-        self.tech_indicators = TechnicalIndicators()
+    """均线交叉策略"""
     
-    def generate_signals(self, data):
-        # 移动原 trading_strategy.py 中的信号生成逻辑
-        signals = self.tech_indicators.calculate_ma_signals(
-            data, self.short_window, self.long_window
-        )
+    def __init__(self, symbol: str, short_window: int = 20, long_window: int = 60):
+        super().__init__(symbol)
+        self.params = {
+            'short_window': short_window,
+            'long_window': long_window
+        }
+    
+    def validate_parameters(self) -> bool:
+        """验证策略参数"""
+        if not isinstance(self.params['short_window'], int):
+            return False
+        if not isinstance(self.params['long_window'], int):
+            return False
+        if self.params['short_window'] >= self.params['long_window']:
+            return False
+        return True
+    
+    def generate_signals(self, data: pd.DataFrame) -> pd.Series:
+        """生成交易信号"""
+        short_ma = calculate_ma(data['close'], self.params['short_window'])
+        long_ma = calculate_ma(data['close'], self.params['long_window'])
+        
+        signals = pd.Series(0, index=data.index)
+        signals[short_ma > long_ma] = 1
+        signals[short_ma < long_ma] = -1
+        
         return signals 

@@ -1,48 +1,75 @@
 from abc import ABC, abstractmethod
+from typing import Dict, Optional
 import pandas as pd
-from typing import Optional
-from ..indicators.technical import TechnicalIndicators
-from ..data.data_loader import DataLoader
+from ..utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 class BaseStrategy(ABC):
     """策略基类"""
     
-    def __init__(self, symbol: str):
-        self.symbol = symbol
-        self.data_loader = DataLoader()
-        self.tech_indicators = TechnicalIndicators()
-        self.name = "BaseStrategy"
-        
+    def __init__(self, name: str):
+        self.name = name
+        self.parameters = {}
+        self.position = 0
+        self.trades = []
+    
+    @abstractmethod
+    def validate_parameters(self) -> bool:
+        """验证参数"""
+        pass
+    
     @abstractmethod
     def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
         """生成交易信号"""
         pass
     
-    @abstractmethod
-    def validate_parameters(self) -> bool:
-        """验证策略参数"""
-        pass
-    
-    def get_data(self, start_date: str = '2020-01-01') -> Optional[pd.DataFrame]:
-        """获取数据"""
-        return self.data_loader.get_stock_data(self.symbol, start_date)
-    
-    def calculate_returns(self, data: pd.DataFrame) -> pd.DataFrame:
-        """计算收益"""
-        data['Returns'] = data['Close'].pct_change()
-        data['Strategy_Returns'] = data['Signal'].shift(1) * data['Returns']
-        data['Cumulative_Returns'] = (1 + data['Returns']).cumprod()
-        data['Strategy_Cumulative_Returns'] = (1 + data['Strategy_Returns']).cumprod()
-        return data
-    
-    def run_strategy(self, start_date: str = '2020-01-01') -> Optional[pd.DataFrame]:
-        """运行策略"""
-        if not self.validate_parameters():
-            return None
+    def calculate_position(self, signal: float, capital: float) -> float:
+        """计算持仓"""
+        try:
+            # 基础仓位计算
+            position = signal * self.parameters.get('position_size', 0.1)
             
-        data = self.get_data(start_date)
-        if data is None:
-            return None
+            # 应用仓位限制
+            max_position = self.parameters.get('max_positions', 1.0)
+            position = min(max_position, max(-max_position, position))
             
-        data = self.generate_signals(data)
-        return self.calculate_returns(data) 
+            # 计算实际持仓金额
+            position_value = position * capital
+            
+            return position_value
+            
+        except Exception as e:
+            logger.error(f"仓位计算失败: {str(e)}")
+            return 0.0
+    
+    def add_trade(self, date: str, symbol: str, type: str, 
+                  price: float, shares: int, profit: float = 0):
+        """记录交易"""
+        try:
+            self.trades.append({
+                'date': date,
+                'symbol': symbol,
+                'type': type,
+                'price': price,
+                'shares': shares,
+                'profit': profit
+            })
+        except Exception as e:
+            logger.error(f"交易记录失败: {str(e)}")
+    
+    def get_trades(self) -> pd.DataFrame:
+        """获取交易记录"""
+        try:
+            return pd.DataFrame(self.trades)
+        except Exception as e:
+            logger.error(f"获取交易记录失败: {str(e)}")
+            return pd.DataFrame()
+    
+    def reset(self):
+        """重置策略状态"""
+        try:
+            self.position = 0
+            self.trades = []
+        except Exception as e:
+            logger.error(f"策略重置失败: {str(e)}") 

@@ -1,5 +1,7 @@
 import pandas as pd
-from typing import Optional, Dict
+import numpy as np
+from typing import Dict, Optional
+from ..strategies.base import BaseStrategy
 from ..utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -7,62 +9,36 @@ logger = setup_logger(__name__)
 class BacktestEngine:
     """回测引擎"""
     
-    def __init__(self, strategy, initial_capital: float = 100000.0):
+    def __init__(self, strategy: BaseStrategy, initial_capital: float = 1000000):
         self.strategy = strategy
         self.initial_capital = initial_capital
-        self.positions = {}
-        self.cash = initial_capital
-        
-    def run(self, data: pd.DataFrame) -> Dict:
+        self.positions = pd.Series()
+        self.portfolio = pd.Series()
+    
+    def run(self, data: Optional[pd.DataFrame] = None) -> Dict:
         """运行回测"""
         try:
-            # 生成信号
-            results = self.strategy.run_strategy()
-            if results is None:
-                return None
+            # 运行策略获取信号
+            results = self.strategy.run_strategy(data)
+            signals = results['signal']
             
-            # 计算交易统计
-            stats = self._calculate_statistics(results)
+            # 计算持仓
+            self.positions = signals.shift(1).fillna(0)
+            
+            # 计算收益
+            returns = data['close'].pct_change()
+            strategy_returns = self.positions * returns
+            
+            # 计算资金曲线
+            self.portfolio = (1 + strategy_returns).cumprod() * self.initial_capital
             
             return {
-                'results': results,
-                'stats': stats
+                'signals': signals,
+                'positions': self.positions,
+                'returns': strategy_returns,
+                'portfolio': self.portfolio
             }
             
         except Exception as e:
-            logger.error(f"Backtest error: {str(e)}")
-            return None
-    
-    def _calculate_statistics(self, results: pd.DataFrame) -> Dict:
-        """计算回测统计数据"""
-        stats = {}
-        
-        # 计算总收益
-        total_return = (
-            results['Strategy_Cumulative_Returns'].iloc[-1] - 1
-        ) * 100
-        
-        # 计算年化收益
-        days = len(results)
-        annual_return = (
-            (1 + total_return/100) ** (252/days) - 1
-        ) * 100
-        
-        # 计算最大回撤
-        cummax = results['Strategy_Cumulative_Returns'].cummax()
-        drawdown = (cummax - results['Strategy_Cumulative_Returns']) / cummax
-        max_drawdown = drawdown.max() * 100
-        
-        # 计算夏普比率
-        daily_returns = results['Strategy_Returns']
-        sharpe_ratio = (
-            daily_returns.mean() / daily_returns.std()
-        ) * (252 ** 0.5)
-        
-        stats['total_return'] = total_return
-        stats['annual_return'] = annual_return
-        stats['max_drawdown'] = max_drawdown
-        stats['sharpe_ratio'] = sharpe_ratio
-        stats['win_rate'] = (results['Strategy_Returns'] > 0).mean() * 100
-        
-        return stats 
+            logger.error(f"回测执行失败: {str(e)}")
+            raise 

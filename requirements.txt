@@ -1,6 +1,31 @@
-# Core dependencies
+# Web框架
 streamlit>=1.32.0
+streamlit-option-menu>=0.3.2
+streamlit-echarts>=0.4.0
+
+# 数据处理
 pandas>=2.2.0
 numpy>=1.24.0
+scipy>=1.10.0
+
+# 数据可视化
 plotly>=5.18.0
-psutil>=5.9.0 
+matplotlib>=3.7.0
+
+# 金融数据
+akshare>=1.10.0
+yfinance>=0.2.35
+tushare>=1.2.89
+
+# 技术分析
+ta>=0.10.0
+empyrical>=0.5.5
+
+# 系统监控
+psutil>=5.9.0
+
+# 开发工具
+pytest>=7.4.0
+black>=23.3.0
+flake8>=6.0.0
+mypy>=1.3.0 
