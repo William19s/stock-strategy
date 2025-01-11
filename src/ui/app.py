@@ -1,6 +1,6 @@
 import streamlit as st
 from src.ui.components.sidebar_nav import render_nav_tree
-from src.ui.pages.strategy_center import render_config_page
+from src.ui.components.strategy_config import render_config_page
 from src.ui.pages.stock_screener import render_screener_page
 from src.ui.pages.portfolio import render_portfolio
 from src.ui.pages.portfolio_analysis import render_portfolio_analysis
@@ -8,6 +8,7 @@ from src.ui.pages.dashboard import render_dashboard
 from src.ui.pages.technical_analysis import render_technical_analysis
 from src.ui.pages.fundamental_analysis import render_fundamental_analysis
 from src.ui.pages.risk_management import render_risk_management
+from src.ui.pages.strategy_center import render_strategy_center
 
 def main():
     """主应用入口"""
@@ -104,7 +105,7 @@ def main():
         elif selected == 'fundamental_analysis':
             render_fundamental_analysis()
         elif selected == 'strategy_center':
-            render_config_page('策略管理')
+            render_strategy_center()
         elif selected == 'stock_screener':
             render_screener_page('股票筛选')
         elif selected == 'portfolio':
